@@ -1,0 +1,5 @@
+
+_propaganda
+
+# Ignore all nested target directories
+**/target/

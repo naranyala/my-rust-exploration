@@ -1,0 +1,10 @@
+[package]
+name = "rust-iced-rxrust-geoprov"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+iced = { version = "0.13", features = ["tokio", "advanced"] }
+rxrust = { version = "1.0.0-beta.11" }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }

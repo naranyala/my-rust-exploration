@@ -1,0 +1,9 @@
+[package]
+name = "rust-opengl-demo"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+glfw = "0.58"   # latest at time of writing
+gl = "0.14"     # raw OpenGL bindings
+
