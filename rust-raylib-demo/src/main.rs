@@ -1,177 +1,103 @@
-// Raylib + Fine-grained Reactivity — Complete Rewrite
 use raylib_ffi::*;
 use raylib_ffi::colors::*;
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::ffi::CString;
 
-// ============== REACTIVITY PRIMITIVES ==============
+const MOUSE_BUTTON_LEFT: i32 = 0;
+const KEY_ESCAPE: i32 = 256;
 
-/// A reactive signal that notifies subscribers when its value changes
-#[derive(Clone)]
-pub struct Signal<T> {
-    value: Rc<RefCell<T>>,
-    subscribers: Rc<RefCell<Vec<Rc<dyn Fn()>>>>,
+struct AccordionSection {
+    title: String,
+    content: String,
+    is_open: bool,
 }
 
-impl<T: Clone + std::fmt::Debug> Signal<T> {
-    pub fn new(value: T) -> Self {
-        println!("[Signal] Creating new signal with value: {:?}", value);
+impl AccordionSection {
+    fn new(title: &str, content: &str) -> Self {
         Self {
-            value: Rc::new(RefCell::new(value)),
-            subscribers: Rc::new(RefCell::new(Vec::new())),
+            title: title.to_string(),
+            content: content.to_string(),
+            is_open: false,
         }
     }
-
-    pub fn get(&self) -> T {
-        self.value.borrow().clone()
-    }
-
-    pub fn set(&self, new_value: T) {
-        println!("[Signal] Setting value to: {:?}", new_value);
-        *self.value.borrow_mut() = new_value;
-        self.notify();
-    }
-
-    fn notify(&self) {
-        let subs = self.subscribers.borrow();
-        println!("[Signal] Notifying {} subscribers", subs.len());
-        for (i, callback) in subs.iter().enumerate() {
-            println!("[Signal] Running subscriber #{}", i + 1);
-            callback();
-        }
-    }
-
-    pub fn subscribe(&self, callback: impl Fn() + 'static) {
-        println!("[Signal] Adding subscriber (total will be: {})", self.subscribers.borrow().len() + 1);
-        self.subscribers.borrow_mut().push(Rc::new(callback));
-    }
 }
-
-/// A computed value that automatically updates when its dependencies change
-pub struct Computed<T> {
-    value: Rc<RefCell<T>>,
-}
-
-impl<T: Clone + std::fmt::Debug + 'static> Computed<T> {
-    pub fn new<U, F>(source: &Signal<U>, compute: F) -> Self
-    where
-        U: Clone + std::fmt::Debug + 'static,
-        F: Fn(U) -> T + 'static,
-    {
-        println!("[Computed] Creating computed value");
-        
-        // Compute initial value
-        let initial = compute(source.get());
-        println!("[Computed] Initial value: {:?}", initial);
-        let value_rc = Rc::new(RefCell::new(initial));
-
-        // Set up reactive dependency
-        let value_clone = value_rc.clone();
-        let source_clone = source.clone();
-        let compute_rc = Rc::new(compute);
-        
-        source.subscribe(move || {
-            println!("[Computed Effect] Triggered!");
-            let source_val = source_clone.get();
-            println!("[Computed Effect] Source value: {:?}", source_val);
-            let new_val = compute_rc(source_val);
-            println!("[Computed Effect] Computed value: {:?}", new_val);
-            *value_clone.borrow_mut() = new_val;
-        });
-
-        println!("[Computed] Subscription complete");
-
-        Self { value: value_rc }
-    }
-
-    pub fn get(&self) -> T {
-        self.value.borrow().clone()
-    }
-}
-
-// ============== RAYLIB HELPERS ==============
-
-fn cstr(s: &str) -> *const std::os::raw::c_char {
-    CString::new(s).unwrap().into_raw()
-}
-
-fn draw_text_centered(text: &str, cx: i32, y: i32, size: i32, color: Color) {
-    let c_text = cstr(text);
-    let w = unsafe { MeasureText(c_text, size) };
-    unsafe { DrawText(c_text, cx - w / 2, y, size, color) };
-}
-
-// ============== MAIN ==============
 
 fn main() {
     unsafe {
-        InitWindow(400, 300, cstr("Reactive Counter"));
+        let title = CString::new("Accordion Demo").unwrap();
+        InitWindow(500, 600, title.as_ptr());
         SetTargetFPS(60);
 
-        println!("\n=== INITIALIZING REACTIVE SYSTEM ===");
-        let counter = Signal::new(0);
-        let doubled = Computed::new(&counter, |v| {
-            println!("[Compute Fn] {} * 2 = {}", v, v * 2);
-            v * 2
-        });
-        println!("=== INITIALIZATION COMPLETE ===\n");
+        let mut sections = vec![
+            AccordionSection::new("Section 1", "This is the content of section 1."),
+            AccordionSection::new("Section 2", "Here lies section 2’s content."),
+            AccordionSection::new("Section 3", "Section 3 has some text too."),
+        ];
 
-        let inc_rect = (50, 180, 100, 50);
-        let reset_rect = (250, 180, 100, 50);
+        let section_x = 50;
+        let section_y = 80;
+        let section_width = 400;
+        let header_height = 40;
+        let content_height = 80;
 
         while !WindowShouldClose() {
-            // Input handling
-            if IsMouseButtonPressed(0) {
-                let mouse = GetMousePosition();
-                let (mx, my) = (mouse.x as i32, mouse.y as i32);
+            // Handle mouse clicks
+            if IsMouseButtonPressed(MOUSE_BUTTON_LEFT) {
+                let mouse_pos = GetMousePosition();
+                let mx = mouse_pos.x as i32;
+                let my = mouse_pos.y as i32;
 
-                // Increment button
-                let (x, y, w, h) = inc_rect;
-                if mx >= x && mx < x + w && my >= y && my < y + h {
-                    println!("\n=== INCREMENT CLICKED ===");
-                    let new_val = counter.get() + 1;
-                    counter.set(new_val);
-                    println!("Counter is now: {}", counter.get());
-                    println!("Doubled is now: {}", doubled.get());
-                    println!("=== INCREMENT COMPLETE ===\n");
-                }
-
-                // Reset button
-                let (x, y, w, h) = reset_rect;
-                if mx >= x && mx < x + w && my >= y && my < y + h {
-                    println!("\n=== RESET CLICKED ===");
-                    counter.set(0);
-                    println!("Counter is now: {}", counter.get());
-                    println!("Doubled is now: {}", doubled.get());
-                    println!("=== RESET COMPLETE ===\n");
+                let mut current_y = section_y;
+                for section in sections.iter_mut() {
+                    // Header area
+                    if mx >= section_x && mx <= section_x + section_width &&
+                       my >= current_y && my <= current_y + header_height {
+                        // Toggle open/close
+                        section.is_open = !section.is_open;
+                    }
+                    current_y += header_height;
+                    if section.is_open {
+                        current_y += content_height;
+                    }
                 }
             }
 
-            // Rendering
+            // Escape closes all
+            if IsKeyPressed(KEY_ESCAPE) {
+                for section in sections.iter_mut() {
+                    section.is_open = false;
+                }
+            }
+
             BeginDrawing();
-            ClearBackground(DARKGRAY);
+            ClearBackground(RAYWHITE);
 
-            // Title
-            draw_text_centered("Reactive Counter", 200, 30, 24, RAYWHITE);
-            
-            // Display values
-            let counter_val = counter.get();
-            let doubled_val = doubled.get();
-            draw_text_centered(&format!("Counter: {}", counter_val), 200, 90, 32, YELLOW);
-            draw_text_centered(&format!("Doubled: {}", doubled_val), 200, 140, 32, GREEN);
+            let demo_title = CString::new("Accordion Demo (click headers)").unwrap();
+            DrawText(demo_title.as_ptr(), 50, 30, 24, DARKGRAY);
 
-            // Increment button
-            let (x, y, w, h) = inc_rect;
-            DrawRectangle(x, y, w, h, BLUE);
-            DrawRectangleLines(x, y, w, h, BLACK);
-            draw_text_centered("Increment", x + w / 2, y + h / 2 - 10, 18, RAYWHITE);
+            // Draw sections
+            let mut current_y = section_y;
+            for section in &sections {
+                // Header
+                let header_color = if section.is_open { SKYBLUE } else { LIGHTGRAY };
+                DrawRectangle(section_x, current_y, section_width, header_height, header_color);
+                DrawRectangleLines(section_x, current_y, section_width, header_height, DARKGRAY);
 
-            // Reset button
-            let (x, y, w, h) = reset_rect;
-            DrawRectangle(x, y, w, h, MAROON);
-            DrawRectangleLines(x, y, w, h, BLACK);
-            draw_text_centered("Reset", x + w / 2, y + h / 2 - 10, 18, RAYWHITE);
+                let title_text = CString::new(section.title.clone()).unwrap();
+                DrawText(title_text.as_ptr(), section_x + 10, current_y + 10, 20, BLACK);
+
+                current_y += header_height;
+
+                // Content if open
+                if section.is_open {
+                    DrawRectangle(section_x, current_y, section_width, content_height, WHITE);
+                    DrawRectangleLines(section_x, current_y, section_width, content_height, GRAY);
+
+                    let content_text = CString::new(section.content.clone()).unwrap();
+                    DrawText(content_text.as_ptr(), section_x + 10, current_y + 10, 18, DARKGREEN);
+
+                    current_y += content_height;
+                }
+            }
 
             EndDrawing();
         }
@@ -179,3 +105,4 @@ fn main() {
         CloseWindow();
     }
 }
+
