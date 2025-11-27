@@ -1,11 +1,3 @@
-
-# my-rust-exploration
-
-> TODO
-
-## `event_bus_counter.rs`
-
-```rs
 // rustc --edition 2021 -C panic=abort event_bus_counter.rs -o event_bus_counter
 // (raylib must be installed on your system)
 
@@ -370,5 +362,3 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
 #[no_mangle]
 pub extern "C" fn rust_eh_personality() { loop {} }
 
-
-```

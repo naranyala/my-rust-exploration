@@ -11,10 +11,14 @@ rustc --edition 2021 -C panic=abort hello_world.rs -o hello_world
 rustc --edition 2021 -C panic=abort formatting.rs -o formatting
 rustc --edition 2021 -C panic=abort manual_mem.rs -o manual_mem
 rustc --edition 2021 -C panic=abort simple_ds.rs -o simple_ds
+rustc --edition 2021 -C panic=abort baremin_ls.rs -o baremin_ls
+rustc --edition 2021 -C panic=abort baremin_cat.rs -o baremin_cat
+rustc --edition 2021 -C panic=abort event_bus.rs -o event_bus
 
 # raylib related
 rustc --edition 2021 -C panic=abort raylib_demo.rs -o raylib_demo 
 rustc --edition 2021 -C panic=abort raylib_calc.rs -o raylib_calc
 rustc --edition 2021 -C panic=abort game_breakout.rs -o game_breakout
 rustc --edition 2021 -C panic=abort game_snake.rs -o game_snake
+rustc --edition 2021 -C panic=abort event_bus_counter.rs -o event_bus_counter
 
