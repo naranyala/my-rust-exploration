@@ -26,6 +26,7 @@ rustc --edition 2021 -C panic=abort rl_analog_clock.rs -o rl_analog_clock
 rustc --edition 2021 -C panic=abort linalg_demo.rs -o linalg_demo
 rustc --edition 2021 -C panic=abort several_3d_shapes.rs -o several_3d_shapes
 rustc --edition 2021 -C panic=abort torus_and_cone.rs -o torus_and_cone
+rustc --edition 2021 -C panic=abort reactive_counter.rs -o reactive_counter
 
 
 
