@@ -1,8 +1,7 @@
-//! counter_with_bus.rs  –  GUI counter driven by an internal event bus
 #![no_std]
 #![no_main]
 
-// ---------- C bindings (only what raylib needs) ----------
+// ---------- C bindings ----------
 #[link(name = "raylib")]
 #[link(name = "m")]
 #[link(name = "pthread")]
@@ -22,80 +21,29 @@ extern "C" {
     fn DrawText(text: *const u8, posX: i32, posY: i32, fontSize: i32, color: Color);
     fn DrawRectangle(posX: i32, posY: i32, width: i32, height: i32, color: Color);
 
+    // mouse
     fn IsMouseButtonPressed(button: i32) -> bool;
     fn GetMouseX() -> i32;
     fn GetMouseY() -> i32;
 }
+
 const MOUSE_LEFT: i32 = 0;
-
-// ---------- re-use the event-bus implementation ----------
-const MAX_LISTENERS: usize = 64;
-type Callback = unsafe extern "C" fn(event: *const u8, data: *mut u8);
-type ListenerId = u32;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-struct Entry {
-    event: *const u8,
-    cb:    Callback,
-    id:    ListenerId,
-}
-unsafe extern "C" fn invalid_cb(_: *const u8, _: *mut u8) {}
-impl Entry {
-    const EMPTY: Self = Entry {
-        event: core::ptr::null(),
-        cb:    invalid_cb,
-        id:    0,
-    };
-}
-static mut TABLE: [Entry; MAX_LISTENERS] = [Entry::EMPTY; MAX_LISTENERS];
-static mut COUNT: usize = 0;
-static mut NEXT_ID: ListenerId = 1;
-
-unsafe fn eventbus_on(event: *const u8, cb: Callback) -> Option<ListenerId> {
-    if COUNT >= MAX_LISTENERS { return None; }
-    let id = NEXT_ID;
-    NEXT_ID = NEXT_ID.wrapping_add(1);
-    if id == 0 { NEXT_ID = 1; }
-    TABLE[COUNT] = Entry { event, cb, id };
-    COUNT += 1;
-    Some(id)
-}
-unsafe fn eventbus_emit(event: *const u8, data: *mut u8) {
-    let c = COUNT;
-    for i in 0..c {
-        let e = TABLE[i];
-        if e.event == event { (e.cb)(event, data); }
-    }
-}
-
-// ---------- event names ----------
-static EVT_INC: &[u8] = b"inc\0";
-static EVT_MUL: &[u8] = b"mul\0";
-
-// ---------- global counter ----------
-static mut COUNTER: u32 = 0;
-
-unsafe extern "C" fn handle_inc(_: *const u8, _: *mut u8) {
-    COUNTER = COUNTER.wrapping_add(1);
-}
-unsafe extern "C" fn handle_mul(_: *const u8, _: *mut u8) {
-    COUNTER = COUNTER.wrapping_mul(2);
-}
 
 // ---------- colors ----------
 #[repr(C)]
 #[derive(Copy, Clone)]
-pub struct Color { r: u8, g: u8, b: u8, a: u8 }
+pub struct Color {
+    r: u8, g: u8, b: u8, a: u8,
+}
 const RAYWHITE: Color = Color{r:245,g:245,b:245,a:255};
 const BLACK:    Color = Color{r:0,g:0,b:0,a:255};
 const RED:      Color = Color{r:230,g:41,b:55,a:255};
 const GREEN:    Color = Color{r:0,g:228,b:48,a:255};
 const BLUE:     Color = Color{r:0,g:121,b:241,a:255};
 
-// ---------- u32 -> &str ----------
+// ---------- helper: u32 -> &str ----------
 fn u32_to_str(mut n: u32) -> &'static str {
-    static mut BUF: [u8; 11] = [0; 11];
+    static mut BUF: [u8; 11] = [0; 11]; // 10 digits + NUL
     unsafe {
         let mut i = 9;
         if n == 0 { BUF[i] = b'0'; } else {
@@ -110,40 +58,49 @@ fn u32_to_str(mut n: u32) -> &'static str {
 // ---------- entry ----------
 #[no_mangle]
 pub unsafe extern "C" fn main(_argc: i32, _argv: *const *const u8) -> i32 {
-    InitWindow(800, 450, b"Counter + EventBus\0".as_ptr());
+    InitWindow(800, 450, b"GUI Counter\0".as_ptr());
     SetTargetFPS(60);
 
-    // subscribe once
-    eventbus_on(EVT_INC.as_ptr(), handle_inc);
-    eventbus_on(EVT_MUL.as_ptr(), handle_mul);
+    let mut counter: u32 = 1;
 
-    let btn_plus = (80, 200, 140, 60);
-    let btn_mul  = (250, 200, 140, 60);
+    // button layouts
+    let btn_plus = ( 80, 200, 140, 60 ); // x,y,w,h
+    let btn_mul   = (250, 200, 140, 60 );
 
     while !WindowShouldClose() {
-        // ---- input ----
+        // ---- click detection ----
         if IsMouseButtonPressed(MOUSE_LEFT) {
             let mx = GetMouseX();
             let my = GetMouseY();
+
+            // +1 button
             if mx >= btn_plus.0 && mx <= btn_plus.0 + btn_plus.2 &&
                my >= btn_plus.1 && my <= btn_plus.1 + btn_plus.3 {
-                eventbus_emit(EVT_INC.as_ptr(), core::ptr::null_mut());
+                counter = counter.wrapping_add(1);
             }
+            // ×2 button
             if mx >= btn_mul.0 && mx <= btn_mul.0 + btn_mul.2 &&
                my >= btn_mul.1 && my <= btn_mul.1 + btn_mul.3 {
-                eventbus_emit(EVT_MUL.as_ptr(), core::ptr::null_mut());
+                counter = counter.wrapping_mul(2);
             }
         }
 
         // ---- draw ----
         BeginDrawing();
         ClearBackground(RAYWHITE);
+
+        // title & counter
         DrawText(b"Counter:\0".as_ptr(), 80, 80, 40, BLACK);
-        DrawText(u32_to_str(COUNTER).as_ptr(), 280, 82, 40, RED);
+        DrawText(u32_to_str(counter).as_ptr(), 280, 82, 40, RED);
+
+        // +1 button
         DrawRectangle(btn_plus.0, btn_plus.1, btn_plus.2, btn_plus.3, BLUE);
         DrawText(b"+1\0".as_ptr(), btn_plus.0 + 50, btn_plus.1 + 20, 30, RAYWHITE);
+
+        // ×2 button
         DrawRectangle(btn_mul.0, btn_mul.1, btn_mul.2, btn_mul.3, GREEN);
         DrawText(b"x2\0".as_ptr(), btn_mul.0 + 50, btn_mul.1 + 20, 30, RAYWHITE);
+
         EndDrawing();
     }
 
