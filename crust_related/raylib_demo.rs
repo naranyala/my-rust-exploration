@@ -1,4 +1,4 @@
-// rustc --edition 2021 -C panic=abort raylib_demo.rs -o raylib_demo 
+// rustc --edition 2021 -C panic=abort raylib_demo.rs -o raylib_demo
 
 #![no_std]
 #![no_main]

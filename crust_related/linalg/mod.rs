@@ -1,8 +1,11 @@
+// linalg.rs   (or mod.rs – same file)
+// #![no_std]
 #![allow(dead_code)]
 
-const EPSILON: f32 = 1e-6;
+pub const EPSILON: f32 = 1e-6;
 
-// Helper math functions - link to libm
+// ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+// IMPORTANT: make them public so earth_wireframe.rs can use them!
 extern "C" {
     fn sinf(x: f32) -> f32;
     fn cosf(x: f32) -> f32;
@@ -12,44 +15,23 @@ extern "C" {
     fn tanf(x: f32) -> f32;
 }
 
-#[inline]
-fn sin_f32(x: f32) -> f32 {
-    unsafe { sinf(x) }
-}
+
+#[inline] pub fn sin_f32(x: f32) -> f32 { unsafe { sinf(x) } }   // ← added pub
+#[inline] pub fn cos_f32(x: f32) -> f32 { unsafe { cosf(x) } }   // ← added pub
+#[inline] pub fn sqrt_f32(x: f32) -> f32 { unsafe { sqrtf(x) } }
+#[inline] pub fn fabs_f32(x: f32) -> f32 { unsafe { fabsf(x) } }
+#[inline] pub fn floor_f32(x: f32) -> f32 { unsafe { floorf(x) } }
+#[inline] pub fn tan_f32(x: f32) -> f32 { unsafe { tanf(x) } }
+// ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
 
 #[inline]
-fn cos_f32(x: f32) -> f32 {
-    unsafe { cosf(x) }
-}
-
-#[inline]
-fn sqrt_f32(x: f32) -> f32 {
-    unsafe { sqrtf(x) }
-}
-
-#[inline]
-fn fabs_f32(x: f32) -> f32 {
-    unsafe { fabsf(x) }
-}
-
-#[inline]
-fn floor_f32(x: f32) -> f32 {
-    unsafe { floorf(x) }
-}
-
-#[inline]
-fn fmin_f32(a: f32, b: f32) -> f32 {
+pub fn fmin_f32(a: f32, b: f32) -> f32 {
     if a < b { a } else { b }
 }
 
 #[inline]
-fn fmax_f32(a: f32, b: f32) -> f32 {
+pub fn fmax_f32(a: f32, b: f32) -> f32 {
     if a > b { a } else { b }
-}
-
-#[inline]
-fn tan_f32(x: f32) -> f32 {
-    unsafe { tanf(x) }
 }
 
 // ============================================================================

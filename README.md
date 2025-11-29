@@ -3,7 +3,7 @@
 
 > TODO
 
-## raylib counter with reactivity primitives
+## reusable reactivity primitives
 
 ```rust 
 // reactive/mod.rs
@@ -333,7 +333,7 @@ pub fn signals_reset() {
 
 ```
 
-## raylib counter with event bus 
+## raylib counter with event bus (not use previous primitives yet)
 
 ```rs
 

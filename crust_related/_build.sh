@@ -29,6 +29,9 @@ rustc --edition 2021 -C panic=abort simple_raylib_counter.rs -o simple_raylib_co
 rustc --edition 2021 -C panic=abort reactive_counter.rs -o reactive_counter
 rustc --edition 2021 -C panic=abort event_bus_counter.rs -o event_bus_counter
 
+rustc --edition 2021 -C panic=abort earth_wireframe.rs -o earth_wireframe
+rustc --edition 2021 -C panic=abort gp2d_collision_demo.rs -o gp2d_collision_demo
+
 
 
 
